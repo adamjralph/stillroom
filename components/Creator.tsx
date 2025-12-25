@@ -1,3 +1,4 @@
+import { apiCreateRoom } from "../services/roomsApi";
 import React, { useState, useEffect } from 'react';
 import { 
   DndContext, 
@@ -114,7 +115,7 @@ const CreatorContent: React.FC = () => {
     expiryDate.setDate(expiryDate.getDate() + form.expiryDays);
 
     try {
-      const room = await roomService.createRoom({
+      const {id} = await apiCreateRoom({
         clientName: form.clientName,
         projectName: form.projectName,
         assets: form.assets.map((a, i) => ({ ...a, order: i })), // Ensure order is saved
@@ -130,9 +131,9 @@ const CreatorContent: React.FC = () => {
 
       // Navigate to success/transition page
       try {
-        navigate(`/created/${room.id}`);
-      } catch (navError) {
-        window.location.hash = `#/created/${room.id}`;
+        navigate(`/created/${id}`);
+      } catch {
+        window.location.hash = `#/created/${id}`;
       }
       
     } catch (error) {

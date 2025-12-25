@@ -1,3 +1,4 @@
+import { apiGetRoom } from "../services/roomsApi";
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, X, Lock, Play } from 'lucide-react';
@@ -71,21 +72,29 @@ export const RoomViewer: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  useEffect(() => {
-    const fetchRoom = async () => {
-      setLoading(true);
-      if (id) {
-        try {
-          const foundRoom = await roomService.getRoomById(id);
-          setRoom(foundRoom);
-        } catch (e) {
-          console.error(e);
-        }
-      }
+useEffect(() => {
+  const fetchRoom = async () => {
+    setLoading(true);
+
+    if (!id) {
       setLoading(false);
-    };
-    fetchRoom();
-  }, [id]);
+      return;
+    }
+
+    try {
+      const foundRoom = await apiGetRoom(id);
+      setRoom(foundRoom);
+    } catch {
+      setRoom(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchRoom();
+}, [id]);
+
+
 
   const handleCta = () => {
     if (!room) return;
