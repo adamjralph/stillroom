@@ -1,3 +1,4 @@
+// DEPLOY_MARKER: 2025-12-26T07:00AEST v1
 import { getStore } from "@netlify/blobs";
 
 // Small helper so every response is readable in Network tab.
