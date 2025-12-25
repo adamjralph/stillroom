@@ -45,7 +45,7 @@ export default async function createRoom(request) {
 
     const token = getBearerToken(request);
     if (!token || token !== expected) {
-      return json(401, { ok: false, message: "Unauthorized" });
+      return json(401, { ok: false, message: "Unauthorized", method: request.method });
     }
 
     let room;
