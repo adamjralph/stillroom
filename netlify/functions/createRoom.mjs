@@ -25,31 +25,31 @@ function randomId() {
 export default async function createRoom(request, context) {
   const startedAt = new Date().toISOString();
 
-  try {
-    if (request.method !== "POST") {
-      return json(405, { ok: false, message: "Method Not Allowed", allow: ["POST"] });
-    }
+//  try {
+//    if (request.method !== "POST") {
+//      return json(405, { ok: false, message: "Method Not Allowed", allow: ["POST"] });
+//    }
+//
+//    const expected = process.env.STILLROOM_ADMIN_KEY;
+//  return json(200, {
+//    ok: false,
+//    debug: {
+//      expectedLength: expected?.length ?? null,
+//      expectedFirst4: expected?.slice(0, 4) ?? null,
+//      hasTrailingWhitespace: expected ? expected !== expected.trim() : null,
+//    },
+//  });
+
 
     const expected = process.env.STILLROOM_ADMIN_KEY;
-  return json(200, {
-    ok: false,
-    debug: {
-      expectedLength: expected?.length ?? null,
-      expectedFirst4: expected?.slice(0, 4) ?? null,
-      hasTrailingWhitespace: expected ? expected !== expected.trim() : null,
-    },
-  });
-
-
- //   const expected = process.env.STILLROOM_ADMIN_KEY;
- //   if (!expected) {
- //     // This is a very common “500 cause”. Make it explicit.
- //     return json(500, {
- //       ok: false,
- //       message: "Server misconfigured: STILLROOM_ADMIN_KEY is not set",
- //       at: startedAt,
- //     });
- //   }
+    if (!expected) {
+      // This is a very common “500 cause”. Make it explicit.
+      return json(500, {
+        ok: false,
+        message: "Server misconfigured: STILLROOM_ADMIN_KEY is not set",
+        at: startedAt,
+      });
+    }
 
     const token = getBearerToken(request);
     if (!token || token !== expected) {
