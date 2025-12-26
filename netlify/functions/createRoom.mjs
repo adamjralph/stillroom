@@ -57,9 +57,7 @@ export default async function createRoom(request) {
 
     const now = Date.now();
     const id = crypto.randomUUID();
-    const key = `room:${id}`;
-
-    const store = getStore({ name: "stillroom", consistency: "strong" });
+    const store = getStore({ name: "rooms", consistency: "strong" });
 
     const createdAt = typeof room?.createdAt === "number" ? room.createdAt : now;
     const expiresAt =
@@ -75,12 +73,7 @@ export default async function createRoom(request) {
       status: room?.status || "active",
     };
 
-    // Write under both the prefixed and bare id keys so getRoom can read
-    // existing records even if the lookup format changes.
-    await Promise.all([
-      store.setJSON(key, payload),
-      store.setJSON(id, payload),
-    ]);
+    await store.setJSON(id, payload);
 
     return json(200, { ok: true, id });
   } catch (err) {

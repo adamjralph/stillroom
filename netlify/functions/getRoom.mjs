@@ -1,9 +1,11 @@
+// STILLROOM_GET_ROOM_VERSION: v-real-405-first-2025-12-26-0906AEST
+
 import { getStore } from "@netlify/blobs";
 
-const VERSION = "v1-get-room";
+const VERSION = "v-real-405-first-2025-12-26-0906AEST";
 
 function json(status, data) {
-  return new Response(JSON.stringify(data, null, 2), {
+  return new Response(JSON.stringify({ version: VERSION, ...data }, null, 2), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
@@ -13,67 +15,34 @@ function json(status, data) {
   });
 }
 
-function normaliseTimestamp(value, fallback) {
-  if (typeof value === "number") return value;
-  const parsed = Date.parse(String(value));
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
 export default async function getRoom(request) {
-  if (request.method !== "GET") {
-    return json(405, { ok: false, message: "Method Not Allowed", allow: ["GET"] });
-  }
-
-  const url = new URL(request.url);
-  const id = url.searchParams.get("id");
-
-  if (!id) {
-    return json(400, { ok: false, message: "Missing id" });
-  }
-
   try {
-    const store = getStore({ name: "stillroom", consistency: "strong" });
-    let stored =
-      (await store.getJSON(`room:${id}`)) ?? (await store.getJSON(id));
-
-    // Deploy Previews can occasionally rewrite keys (e.g. adding prefixes), so
-    // fall back to listing the store and matching on the raw id suffix.
-    if (!stored) {
-      const listing = await store.list({ prefix: "room" });
-      const match = listing?.blobs?.find((entry) => entry.key?.endsWith(id));
-      if (match?.key) {
-        stored = await store.getJSON(match.key);
-      }
+    if (request.method !== "GET") {
+      return json(405, { ok: false, message: "Method Not Allowed", allow: ["GET"] });
     }
 
-    if (!stored) {
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id")?.trim();
+    if (!id) {
+      return json(400, { ok: false, message: "Missing id" });
+    }
+
+    const store = getStore({ name: "rooms", consistency: "strong" });
+    const room = await store.getJSON(id);
+
+    if (!room) {
       return json(404, { ok: false, message: "Room not found" });
     }
 
-    const createdAt = normaliseTimestamp(stored.createdAt, Date.now());
-    const expiresAt = normaliseTimestamp(stored.expiresAt, createdAt);
-    const status =
-      stored.status === "paused"
-        ? "paused"
-        : Date.now() > expiresAt
-        ? "expired"
-        : stored.status || "active";
-
-    const room = {
-      ...stored,
-      id,
-      createdAt,
-      expiresAt,
-      status,
-    };
-
-    return json(200, room);
+    return json(200, { ok: true, room });
   } catch (err) {
     console.error("getRoom failed", err);
     return json(500, {
       ok: false,
       message: "getRoom failed",
       error: String(err?.message || err),
+      name: err?.name,
+      stack: err?.stack,
     });
   }
 }
