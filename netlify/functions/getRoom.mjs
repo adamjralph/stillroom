@@ -33,8 +33,18 @@ export default async function getRoom(request) {
 
   try {
     const store = getStore({ name: "stillroom", consistency: "strong" });
-    const stored =
+    let stored =
       (await store.getJSON(`room:${id}`)) ?? (await store.getJSON(id));
+
+    // Deploy Previews can occasionally rewrite keys (e.g. adding prefixes), so
+    // fall back to listing the store and matching on the raw id suffix.
+    if (!stored) {
+      const listing = await store.list({ prefix: "room" });
+      const match = listing?.blobs?.find((entry) => entry.key?.endsWith(id));
+      if (match?.key) {
+        stored = await store.getJSON(match.key);
+      }
+    }
 
     if (!stored) {
       return json(404, { ok: false, message: "Room not found" });
