@@ -1,4 +1,4 @@
-import { apiCreateRoom } from "../services/roomsApi";
+import { apiCreateRoom, apiGetRoom } from "../services/roomsApi";
 import React, { useState, useEffect } from 'react';
 import { 
   DndContext, 
@@ -23,6 +23,8 @@ const CreatorContent: React.FC = () => {
   const navigate = useNavigate();
   const [recentRooms, setRecentRooms] = useState<Room[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const RECENT_IDS_KEY = 'stillroom_recent_ids';
 
   // Form State
   const [form, setForm] = useState<CreateRoomFormValues>({
@@ -49,7 +51,50 @@ const CreatorContent: React.FC = () => {
 
   const loadRecentRooms = async () => {
     const rooms = await roomService.getAllRooms();
-    setRecentRooms(rooms.slice(0, 5)); // Show last 5
+    if (rooms.length > 0) {
+      rememberRecentIds(rooms.map((r) => r.id));
+      setRecentRooms(rooms.slice(0, 5));
+      return;
+    }
+
+    const storedIds = getRecentIds();
+    if (storedIds.length === 0) {
+      setRecentRooms([]);
+      return;
+    }
+
+    const fetched = await Promise.all(storedIds.map((id) => apiGetRoom(id)));
+    const hydrated = fetched.filter(Boolean) as Room[];
+    if (hydrated.length > 0) {
+      hydrated.sort((a, b) => b.createdAt - a.createdAt);
+      setRecentRooms(hydrated.slice(0, 5));
+
+      // Re-hydrate local cache for faster next load
+      hydrated.forEach((room) => {
+        roomService.saveRoom(room).catch(() => {});
+      });
+    } else {
+      setRecentRooms([]);
+    }
+  };
+
+  const getRecentIds = (): string[] => {
+    try {
+      const raw = localStorage.getItem(RECENT_IDS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const rememberRecentIds = (ids: string[]) => {
+    try {
+      const existing = getRecentIds();
+      const merged = Array.from(new Set([...ids, ...existing])).slice(0, 20);
+      localStorage.setItem(RECENT_IDS_KEY, JSON.stringify(merged));
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleDeleteRoom = async (id: string) => {
@@ -149,6 +194,7 @@ const CreatorContent: React.FC = () => {
 
       try {
         await roomService.saveRoom(roomForCache);
+        rememberRecentIds([id]);
         await loadRecentRooms();
       } catch (cacheError) {
         console.warn('Failed to update recent rooms cache', cacheError);
