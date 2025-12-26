@@ -57,7 +57,8 @@ export default async function createRoom(request) {
 
     const now = Date.now();
     const id = crypto.randomUUID();
-    const store = getStore({ name: "rooms", consistency: "strong" });
+    const roomStore = getStore({ name: "rooms", consistency: "strong" });
+    const assetStore = getStore({ name: "room-assets", consistency: "strong" });
 
     const createdAt = typeof room?.createdAt === "number" ? room.createdAt : now;
     const expiresAt =
@@ -65,15 +66,47 @@ export default async function createRoom(request) {
         ? room.expiresAt
         : Date.parse(String(room?.expiresAt ?? now));
 
+    const parseDataUrl = (value) => {
+      const match = /^data:([^;]+);base64,(.+)$/.exec(value || "");
+      if (!match) return null;
+      return { mime: match[1], base64: match[2] };
+    };
+
+    const assets = Array.isArray(room?.assets) ? room.assets : [];
+
+    const processedAssets = await Promise.all(
+      assets.map(async (asset, index) => {
+        const assetId = asset?.id || `asset-${index}`;
+        const parsed = typeof asset?.url === "string" ? parseDataUrl(asset.url) : null;
+
+        if (!parsed) {
+          return { ...asset, id: assetId };
+        }
+
+        const key = `${id}/${assetId}`;
+        const binary = Buffer.from(parsed.base64, "base64");
+
+        await assetStore.set(key, binary, { contentType: parsed.mime });
+
+        return {
+          ...asset,
+          id: assetId,
+          url: key,
+          mime: parsed.mime,
+        };
+      })
+    );
+
     const payload = {
       ...room,
       id,
       createdAt,
       expiresAt,
       status: room?.status || "active",
+      assets: processedAssets,
     };
 
-    await store.set(id, JSON.stringify(payload));
+    await roomStore.set(id, JSON.stringify(payload));
 
     return json(200, { ok: true, id });
   } catch (err) {
