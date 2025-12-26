@@ -33,8 +33,8 @@ export default async function getRoom(request) {
 
   try {
     const store = getStore({ name: "stillroom", consistency: "strong" });
-    const key = `room:${id}`;
-    const stored = await store.getJSON(key);
+    const stored =
+      (await store.getJSON(`room:${id}`)) ?? (await store.getJSON(id));
 
     if (!stored) {
       return json(404, { ok: false, message: "Room not found" });

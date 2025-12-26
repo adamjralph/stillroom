@@ -67,13 +67,20 @@ export default async function createRoom(request) {
         ? room.expiresAt
         : Date.parse(String(room?.expiresAt ?? now));
 
-    await store.setJSON(key, {
+    const payload = {
       ...room,
       id,
       createdAt,
       expiresAt,
       status: room?.status || "active",
-    });
+    };
+
+    // Write under both the prefixed and bare id keys so getRoom can read
+    // existing records even if the lookup format changes.
+    await Promise.all([
+      store.setJSON(key, payload),
+      store.setJSON(id, payload),
+    ]);
 
     return json(200, { ok: true, id });
   } catch (err) {

@@ -47,6 +47,13 @@ const CreatorContent: React.FC = () => {
 
   useEffect(() => {
     loadRecentRooms();
+    const handler = () => loadRecentRooms();
+    window.addEventListener('focus', handler);
+    document.addEventListener('visibilitychange', handler);
+    return () => {
+      window.removeEventListener('focus', handler);
+      document.removeEventListener('visibilitychange', handler);
+    };
   }, []);
 
   const loadRecentRooms = async () => {
