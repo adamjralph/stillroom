@@ -62,10 +62,18 @@ export async function apiDeleteRoom(id: string): Promise<void> {
 }
 
 export async function apiGetRoom(id: string): Promise<Room | null> {
-  const res = await fetch(
-    `/.netlify/functions/getRoom?id=${encodeURIComponent(id)}`,
-    { headers: { "accept": "application/json", "cache-control": "no-store" } }
-  );
+  const trimmedId = id?.trim();
+  if (trimmedId === undefined || trimmedId === "") {
+    throw new Error("Missing room id from route");
+  }
+
+  const url = `/.netlify/functions/getRoom?id=${encodeURIComponent(trimmedId)}`;
+
+  console.info("Fetching room", url);
+
+  const res = await fetch(url, {
+    headers: { "accept": "application/json", "cache-control": "no-store" },
+  });
 
   if (res.status === 404) return null;
 
