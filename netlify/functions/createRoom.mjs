@@ -1,8 +1,8 @@
-// STILLROOM_CREATE_ROOM_VERSION: v-real-405-first-2025-12-26-0906AEST
+// STILLROOM_CREATE_ROOM_VERSION: v-real-405-first-2025-12-26-0906AEST-BUMP1
 
 import { getStore } from "@netlify/blobs";
 
-const VERSION = "v-real-405-first-2025-12-26-0906AEST";
+const VERSION = "v-real-405-first-2025-12-26-0906AEST-BUMP1";
 
 function json(status, data) {
   return new Response(JSON.stringify({ version: VERSION, ...data }, null, 2), {
