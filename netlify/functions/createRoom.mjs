@@ -55,15 +55,24 @@ export default async function createRoom(request) {
       return json(400, { ok: false, message: "Invalid JSON body" });
     }
 
+    const now = Date.now();
     const id = crypto.randomUUID();
     const key = `room:${id}`;
 
     const store = getStore({ name: "stillroom", consistency: "strong" });
 
+    const createdAt = typeof room?.createdAt === "number" ? room.createdAt : now;
+    const expiresAt =
+      typeof room?.expiresAt === "number"
+        ? room.expiresAt
+        : Date.parse(String(room?.expiresAt ?? now));
+
     await store.setJSON(key, {
       ...room,
       id,
-      createdAt: new Date().toISOString(),
+      createdAt,
+      expiresAt,
+      status: room?.status || "active",
     });
 
     return json(200, { ok: true, id });

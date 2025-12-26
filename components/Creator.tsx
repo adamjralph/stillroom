@@ -129,6 +129,31 @@ const CreatorContent: React.FC = () => {
         expiresAt: expiryDate.getTime()
       });
 
+      // Persist locally for quick recent access
+      const roomForCache: Room = {
+        id,
+        clientName: form.clientName,
+        projectName: form.projectName,
+        assets: form.assets,
+        videoUrl: form.videoUrl || undefined,
+        textBlocks: form.textBlocks.map((t) => t.value).filter(Boolean),
+        cta: {
+          type: form.ctaType,
+          label: getCtaLabel(form.ctaType),
+          target: form.ctaTarget,
+        },
+        status: 'active',
+        createdAt: Date.now(),
+        expiresAt: expiryDate.getTime(),
+      };
+
+      try {
+        await roomService.saveRoom(roomForCache);
+        await loadRecentRooms();
+      } catch (cacheError) {
+        console.warn('Failed to update recent rooms cache', cacheError);
+      }
+
       // Navigate to success/transition page
       try {
         navigate(`/created/${id}`);

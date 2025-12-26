@@ -149,7 +149,6 @@ export const roomService = {
   },
 
   createRoom: async (roomData: Omit<Room, 'id' | 'createdAt' | 'status'>): Promise<Room> => {
-    const db = await openDB();
     const newRoom: Room = {
       ...roomData,
       id: generateId(),
@@ -157,13 +156,19 @@ export const roomService = {
       status: 'active',
     };
 
+    await roomService.saveRoom(newRoom);
+    return newRoom;
+  },
+
+  saveRoom: async (room: Room): Promise<void> => {
+    const db = await openDB();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.add(newRoom);
+      const request = store.put(room);
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(newRoom);
+      request.onsuccess = () => resolve();
     });
   },
 
