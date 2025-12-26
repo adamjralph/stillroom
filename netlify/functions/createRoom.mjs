@@ -73,7 +73,7 @@ export default async function createRoom(request) {
       status: room?.status || "active",
     };
 
-    await store.setJSON(id, payload);
+    await store.set(id, JSON.stringify(payload));
 
     return json(200, { ok: true, id });
   } catch (err) {

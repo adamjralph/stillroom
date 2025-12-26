@@ -28,10 +28,17 @@ export default async function getRoom(request) {
     }
 
     const store = getStore({ name: "rooms", consistency: "strong" });
-    const room = await store.getJSON(id);
+    const raw = await store.get(id);
 
-    if (!room) {
+    if (raw == null) {
       return json(404, { ok: false, message: "Room not found" });
+    }
+
+    let room = raw;
+    if (typeof raw === "string") {
+      room = JSON.parse(raw);
+    } else if (raw instanceof Uint8Array || ArrayBuffer.isView(raw)) {
+      room = JSON.parse(new TextDecoder().decode(raw));
     }
 
     return json(200, { ok: true, room });
