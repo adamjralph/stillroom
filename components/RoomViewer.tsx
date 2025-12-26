@@ -80,7 +80,9 @@ export const RoomViewer: React.FC = () => {
     if (asset.url.startsWith('/.netlify/functions/getAsset')) return asset.url;
     if (/^https?:\/\//i.test(asset.url)) return asset.url;
 
-    return `/.netlify/functions/getAsset?roomId=${encodeURIComponent(roomId)}&assetId=${encodeURIComponent(asset.id)}`;
+    const inferredAssetId = asset.url.split('/').filter(Boolean).pop() || asset.id;
+
+    return `/.netlify/functions/getAsset?roomId=${encodeURIComponent(roomId)}&assetId=${encodeURIComponent(inferredAssetId)}`;
   };
 
 useEffect(() => {
