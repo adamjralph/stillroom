@@ -136,10 +136,16 @@ const CreatorContent: React.FC = () => {
         window.location.hash = `#/created/${id}`;
       }
       
-    } catch (error) {
-      console.error('Error creating room:', error);
-      alert('Failed to create room. Please try again.');
+    } catch (error: any) {
+      console.error("Error creating room:", error);
+      alert(error?.message || "Failed to create room. Please try again.");
     }
+      
+
+   // } catch (error) {
+   //   console.error('Error creating room:', error);
+   //   alert('Failed to create room. Please try again.');
+   // }
   };
 
   // Robust URL generation for HashRouter
