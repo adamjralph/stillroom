@@ -11,7 +11,8 @@ export interface CTA {
 export interface Asset {
   id: string;
   type: 'image';
-  url: string; // Base64 or Blob URL
+  url: string; // Data URL during creation; stored as an asset key or fetchable URL on the server
+  mime?: string;
   order: number;
 }
 

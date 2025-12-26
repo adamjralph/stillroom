@@ -6,14 +6,16 @@ import { Room } from '../types';
 import { roomService } from '../services/roomService';
 import { Button } from './Shared';
 
-const Lightbox = ({ 
-  assets, 
-  initialIndex, 
-  onClose 
-}: { 
-  assets: Room['assets'], 
-  initialIndex: number, 
-  onClose: () => void 
+type DisplayAsset = Room['assets'][number] & { displayUrl: string };
+
+const Lightbox = ({
+  assets,
+  initialIndex,
+  onClose
+}: {
+  assets: DisplayAsset[],
+  initialIndex: number,
+  onClose: () => void
 }) => {
   const [index, setIndex] = useState(initialIndex);
 
@@ -46,10 +48,10 @@ const Lightbox = ({
            </button>
          )}
          
-         <img 
-           src={assets[index].url} 
-           alt="" 
-           className="max-w-full max-h-full object-contain shadow-2xl" 
+         <img
+           src={assets[index].displayUrl}
+           alt=""
+           className="max-w-full max-h-full object-contain shadow-2xl"
          />
 
          {assets.length > 1 && (
@@ -71,6 +73,17 @@ export const RoomViewer: React.FC = () => {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const resolveAssetUrl = (roomId: string, asset: Room['assets'][number]) => {
+    if (!asset?.url) return asset?.url ?? '';
+    if (asset.url.startsWith('data:')) return asset.url;
+    if (asset.url.startsWith('/.netlify/functions/getAsset')) return asset.url;
+    if (/^https?:\/\//i.test(asset.url)) return asset.url;
+
+    const inferredAssetId = asset.url.split('/').filter(Boolean).pop() || asset.id;
+
+    return `/.netlify/functions/getAsset?roomId=${encodeURIComponent(roomId)}&assetId=${encodeURIComponent(inferredAssetId)}`;
+  };
 
 useEffect(() => {
   const fetchRoom = async () => {
@@ -154,13 +167,17 @@ useEffect(() => {
 
   const videoData = room.videoUrl ? getVideoEmbed(room.videoUrl) : null;
 
+  const displayAssets: DisplayAsset[] = room
+    ? room.assets.map((asset) => ({ ...asset, displayUrl: resolveAssetUrl(room.id, asset) }))
+    : [];
+
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-100 animate-fade-in-up">
       {lightboxIndex !== null && (
-        <Lightbox 
-          assets={room.assets} 
-          initialIndex={lightboxIndex} 
-          onClose={() => setLightboxIndex(null)} 
+        <Lightbox
+          assets={displayAssets}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
         />
       )}
 
@@ -173,16 +190,16 @@ useEffect(() => {
 
         {/* Gallery */}
         <div className="space-y-24">
-          {room.assets.map((asset, index) => (
-            <div 
-              key={asset.id} 
+          {displayAssets.map((asset, index) => (
+            <div
+              key={asset.id}
               className="cursor-zoom-in transition-transform duration-500 hover:scale-[1.01]"
               onClick={() => setLightboxIndex(index)}
             >
-              <img 
-                src={asset.url} 
-                alt="" 
-                className="w-full h-auto shadow-sm block" 
+              <img
+                src={asset.displayUrl}
+                alt=""
+                className="w-full h-auto shadow-sm block"
                 loading="lazy"
               />
             </div>

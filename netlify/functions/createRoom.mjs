@@ -1,8 +1,8 @@
-// STILLROOM_CREATE_ROOM_VERSION: v-real-405-first-2025-12-26-0906AEST
+// STILLROOM_CREATE_ROOM_VERSION: v-real-405-first-2025-12-26-0906AEST-BUMP1
 
 import { getStore } from "@netlify/blobs";
 
-const VERSION = "v-real-405-first-2025-12-26-0906AEST";
+const VERSION = "v-real-405-first-2025-12-26-0906AEST-BUMP1";
 
 function json(status, data) {
   return new Response(JSON.stringify({ version: VERSION, ...data }, null, 2), {
@@ -55,16 +55,58 @@ export default async function createRoom(request) {
       return json(400, { ok: false, message: "Invalid JSON body" });
     }
 
+    const now = Date.now();
     const id = crypto.randomUUID();
-    const key = `room:${id}`;
+    const roomStore = getStore({ name: "rooms", consistency: "strong" });
+    const assetStore = getStore({ name: "room-assets", consistency: "strong" });
 
-    const store = getStore({ name: "stillroom", consistency: "strong" });
+    const createdAt = typeof room?.createdAt === "number" ? room.createdAt : now;
+    const expiresAt =
+      typeof room?.expiresAt === "number"
+        ? room.expiresAt
+        : Date.parse(String(room?.expiresAt ?? now));
 
-    await store.setJSON(key, {
+    const parseDataUrl = (value) => {
+      const match = /^data:([^;]+);base64,(.+)$/.exec(value || "");
+      if (!match) return null;
+      return { mime: match[1], base64: match[2] };
+    };
+
+    const assets = Array.isArray(room?.assets) ? room.assets : [];
+
+    const processedAssets = await Promise.all(
+      assets.map(async (asset, index) => {
+        const assetId = asset?.id || `asset-${index}`;
+        const parsed = typeof asset?.url === "string" ? parseDataUrl(asset.url) : null;
+
+        if (!parsed) {
+          return { ...asset, id: assetId };
+        }
+
+        const key = `${id}/${assetId}`;
+        const binary = Buffer.from(parsed.base64, "base64");
+
+        await assetStore.set(key, binary, { contentType: parsed.mime });
+
+        return {
+          ...asset,
+          id: assetId,
+          url: key,
+          mime: parsed.mime,
+        };
+      })
+    );
+
+    const payload = {
       ...room,
       id,
-      createdAt: new Date().toISOString(),
-    });
+      createdAt,
+      expiresAt,
+      status: room?.status || "active",
+      assets: processedAssets,
+    };
+
+    await roomStore.set(id, JSON.stringify(payload));
 
     return json(200, { ok: true, id });
   } catch (err) {
