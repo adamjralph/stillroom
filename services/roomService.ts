@@ -181,7 +181,6 @@ export const roomService = {
 
   fileToBase64: (file: File): Promise<string> => {
   return compressImageToDataUrl(file, { maxDim: 1600, quality: 0.82 });
-  },
-
-  },
+  }
 };
+
